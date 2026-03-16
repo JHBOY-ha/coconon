@@ -665,11 +665,49 @@ export const prisma: PrismaCompat = {
       where: { date: Date };
       data: Record<string, unknown>;
     }) {
-      return prisma.dailySnapshot.upsert({
-        where,
-        update: data,
-        create: { date: where.date, ...data },
+      const dateIso = where.date.toISOString();
+      const existing = toCamel(
+        db.prepare("SELECT * FROM daily_snapshots WHERE date = ?").get(dateIso),
+      ) as Record<string, unknown> | null;
+
+      if (!existing) {
+        throw new Error(`Daily snapshot not found for ${dateIso}.`);
+      }
+
+      const merged = { ...existing, ...data };
+
+      db.prepare(
+        `UPDATE daily_snapshots SET
+          total_videos = @totalVideos,
+          total_duration = @totalDuration,
+          unique_authors = @uniqueAuthors,
+          unique_topics = @uniqueTopics,
+          active_hours = @activeHours,
+          topic_distribution = @topicDistribution,
+          zone_distribution = @zoneDistribution,
+          author_distribution = @authorDistribution,
+          novelty_ratio = @noveltyRatio,
+          score_breakdown = @scoreBreakdown,
+          updated_at = @updatedAt
+        WHERE date = @date`,
+      ).run({
+        date: dateIso,
+        totalVideos: merged.totalVideos,
+        totalDuration: merged.totalDuration,
+        uniqueAuthors: merged.uniqueAuthors,
+        uniqueTopics: merged.uniqueTopics,
+        activeHours: merged.activeHours,
+        topicDistribution: merged.topicDistribution,
+        zoneDistribution: merged.zoneDistribution,
+        authorDistribution: merged.authorDistribution,
+        noveltyRatio: merged.noveltyRatio ?? null,
+        scoreBreakdown: merged.scoreBreakdown,
+        updatedAt: nowIso(),
       });
+
+      return Promise.resolve(
+        toCamel(db.prepare("SELECT * FROM daily_snapshots WHERE date = ?").get(dateIso)),
+      );
     },
   },
   dailyReport: {

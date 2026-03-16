@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { saveBiliCookie } from "@/lib/server/config";
+import { buildBiliCookie, saveBiliCookie } from "@/lib/server/config";
 
-const cookieSchema = z.object({
+const splitCookieSchema = z.object({
+  sessdata: z.string().min(10, "请填写 SESSDATA。"),
+  biliJct: z.string().optional().default(""),
+  dedeUserId: z.string().optional().default(""),
+});
+
+const rawCookieSchema = z.object({
   cookie: z
     .string()
     .min(10, "Cookie 内容太短")
@@ -12,8 +18,21 @@ const cookieSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const body = cookieSchema.parse(await request.json());
-    await saveBiliCookie(body.cookie);
+    const payload = await request.json();
+    const body =
+      "cookie" in payload
+        ? rawCookieSchema.parse(payload)
+        : splitCookieSchema.parse(payload);
+    const cookie =
+      "cookie" in body
+        ? body.cookie
+        : buildBiliCookie({
+            sessdata: body.sessdata,
+            biliJct: body.biliJct,
+            dedeUserId: body.dedeUserId,
+          });
+
+    await saveBiliCookie(cookie);
 
     return NextResponse.json({
       ok: true,

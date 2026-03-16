@@ -333,13 +333,21 @@ export async function generateDailyReport(dayKey = formatDay(new Date())): Promi
     evidence: breakdown.evidence,
   };
 
-  const generated = (await generateNarrativeReport(payload)) ?? buildFallbackBody(payload);
+  let generated: { summary: string; body: string } | null = null;
+
+  try {
+    generated = await generateNarrativeReport(payload);
+  } catch (error) {
+    console.error("Failed to generate narrative report with LLM, falling back to template.", error);
+  }
+
+  const finalReport = generated ?? buildFallbackBody(payload);
 
   return (await prisma.dailyReport.upsert({
     where: { date: todaySnapshot.date },
     update: {
-      summary: generated.summary,
-      body: generated.body,
+      summary: finalReport.summary,
+      body: finalReport.body,
       cocoonScore: breakdown.score,
       cocoonLevel: breakdown.level,
       comparisonLabel: breakdown.comparisonLabel,
@@ -353,8 +361,8 @@ export async function generateDailyReport(dayKey = formatDay(new Date())): Promi
     },
     create: {
       date: todaySnapshot.date,
-      summary: generated.summary,
-      body: generated.body,
+      summary: finalReport.summary,
+      body: finalReport.body,
       cocoonScore: breakdown.score,
       cocoonLevel: breakdown.level,
       comparisonLabel: breakdown.comparisonLabel,

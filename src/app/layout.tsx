@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Serif_Display, Manrope } from "next/font/google";
 import "./globals.css";
+import { initializeApplication } from "@/lib/server/config";
 import { ensureScheduler } from "@/lib/server/scheduler";
 
 const manrope = Manrope({
@@ -24,6 +25,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await initializeApplication();
   await ensureScheduler();
 
   return (

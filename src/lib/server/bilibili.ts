@@ -2,7 +2,7 @@ import { CredentialStatus, TagStatus } from "@/lib/db-types";
 import { prisma } from "@/lib/prisma";
 import type { WatchHistoryItemRecord } from "@/lib/store-types";
 import { addDays } from "@/lib/utils";
-import { ensureBiliCredential, getDecryptedCookie } from "@/lib/server/config";
+import { buildBiliCookie, ensureBiliCredential, getDecryptedCookie } from "@/lib/server/config";
 
 const BILIBILI_HISTORY_API = "https://api.bilibili.com/x/web-interface/history/cursor";
 
@@ -145,6 +145,43 @@ async function fetchHistoryPage(cookie: string, cursor?: CursorState) {
   return {
     list: payload.data.list ?? [],
     cursor: payload.data.cursor,
+  };
+}
+
+export async function validateBiliCookie(input: {
+  cookie?: string;
+  sessdata?: string;
+  biliJct?: string;
+  dedeUserId?: string;
+}) {
+  const currentCookie = await getDecryptedCookie();
+  const cookie =
+    currentCookie && currentCookie.includes("SESSDATA=")
+      ? currentCookie
+      : input.cookie
+        ? input.cookie
+        : input.sessdata
+          ? buildBiliCookie({
+              sessdata: input.sessdata,
+              biliJct: input.biliJct,
+              dedeUserId: input.dedeUserId,
+            })
+          : null;
+
+  if (!cookie) {
+    throw new Error("当前没有已保存 Cookie，请先填写 SESSDATA，或先保存 Cookie。");
+  }
+
+  const parsedCookie = parseCookie(cookie);
+  if (!parsedCookie.SESSDATA) {
+    throw new Error("Cookie 缺少 SESSDATA，无法请求观看历史。");
+  }
+
+  const page = await fetchHistoryPage(cookie);
+  return {
+    ok: true,
+    itemCount: page.list.length,
+    hasCursor: Boolean(page.cursor?.max || page.cursor?.view_at),
   };
 }
 

@@ -37,6 +37,7 @@ npm run dev
 ```
 
 打开 [http://localhost:3000](http://localhost:3000)。
+首次启动时应用会自动创建本地 SQLite 表、默认配置和空的 Bilibili 凭证记录。
 
 ## Environment
 

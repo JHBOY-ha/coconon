@@ -1,7 +1,13 @@
 import { prisma } from "@/lib/prisma";
-import { decryptText, encryptText } from "@/lib/crypto";
+import { decryptText, encryptText, maskSecret } from "@/lib/crypto";
 import { getDefaultLlmBaseUrl, getDefaultLlmModel } from "@/lib/env";
 import type { AppConfigRecord, BiliCredentialRecord } from "@/lib/store-types";
+
+type BiliCookieParts = {
+  sessdata: string;
+  biliJct?: string;
+  dedeUserId?: string;
+};
 
 export async function ensureAppConfig(): Promise<AppConfigRecord> {
   return (await prisma.appConfig.upsert({
@@ -23,6 +29,10 @@ export async function ensureBiliCredential(): Promise<BiliCredentialRecord> {
   })) as BiliCredentialRecord;
 }
 
+export async function initializeApplication() {
+  await Promise.all([ensureAppConfig(), ensureBiliCredential()]);
+}
+
 export async function getDecryptedCookie() {
   const credential = await ensureBiliCredential();
 
@@ -33,13 +43,40 @@ export async function getDecryptedCookie() {
   return decryptText(credential.cookieEncrypted);
 }
 
+export function buildBiliCookie(parts: BiliCookieParts) {
+  return [
+    `SESSDATA=${parts.sessdata.trim()}`,
+    parts.biliJct?.trim() ? `bili_jct=${parts.biliJct.trim()}` : null,
+    parts.dedeUserId?.trim() ? `DedeUserID=${parts.dedeUserId.trim()}` : null,
+  ]
+    .filter(Boolean)
+    .join("; ");
+}
+
+export function buildCookiePreview(cookie: string) {
+  const values = Object.fromEntries(
+    cookie
+      .split(";")
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .map((entry) => {
+        const [key, ...rest] = entry.split("=");
+        return [key, rest.join("=")];
+      }),
+  ) as Record<string, string>;
+
+  const previewParts = [
+    values.SESSDATA ? `SESSDATA=${maskSecret(values.SESSDATA)}` : null,
+    values.bili_jct ? `bili_jct=${maskSecret(values.bili_jct)}` : null,
+    values.DedeUserID ? `DedeUserID=${values.DedeUserID}` : null,
+  ];
+
+  return previewParts.filter(Boolean).join(" · ") || "已配置 Cookie";
+}
+
 export async function saveBiliCookie(cookie: string) {
   const encrypted = encryptText(cookie);
-  const preview = cookie
-    .split(";")
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.startsWith("SESSDATA=") || entry.startsWith("DedeUserID="))
-    .join("; ");
+  const preview = buildCookiePreview(cookie);
 
   return (await prisma.biliCredential.upsert({
     where: { singleton: "default" },

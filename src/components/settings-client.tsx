@@ -11,28 +11,38 @@ type SettingsClientProps = {
 };
 
 export function SettingsClient(props: SettingsClientProps) {
-  const [cookie, setCookie] = useState("");
+  const [sessdata, setSessdata] = useState("");
+  const [biliJct, setBiliJct] = useState("");
+  const [dedeUserId, setDedeUserId] = useState("");
   const [cookieMessage, setCookieMessage] = useState<string | null>(null);
+  const [cookieTesting, setCookieTesting] = useState(false);
   const [llmBaseUrl, setLlmBaseUrl] = useState(props.llmBaseUrl ?? "");
   const [llmModel, setLlmModel] = useState(props.llmModel ?? "");
   const [apiKey, setApiKey] = useState("");
   const [syncHour, setSyncHour] = useState(props.syncHour);
   const [syncMinute, setSyncMinute] = useState(props.syncMinute);
   const [llmMessage, setLlmMessage] = useState<string | null>(null);
+  const [llmTesting, setLlmTesting] = useState(false);
 
   async function submitCookie() {
     setCookieMessage(null);
     const response = await fetch("/api/settings/cookie", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cookie }),
+      body: JSON.stringify({
+        sessdata,
+        biliJct,
+        dedeUserId,
+      }),
     });
 
     const payload = (await response.json()) as { message?: string; error?: string };
     setCookieMessage(payload.message ?? payload.error ?? null);
 
     if (response.ok) {
-      setCookie("");
+      setSessdata("");
+      setBiliJct("");
+      setDedeUserId("");
     }
   }
 
@@ -58,38 +68,121 @@ export function SettingsClient(props: SettingsClientProps) {
     }
   }
 
+  async function testCookie() {
+    setCookieTesting(true);
+    setCookieMessage(null);
+
+    try {
+      const response = await fetch("/api/settings/cookie/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessdata,
+          biliJct,
+          dedeUserId,
+        }),
+      });
+
+      const payload = (await response.json()) as { message?: string; error?: string };
+      setCookieMessage(payload.message ?? payload.error ?? null);
+    } finally {
+      setCookieTesting(false);
+    }
+  }
+
+  async function testLlm() {
+    setLlmTesting(true);
+    setLlmMessage(null);
+
+    try {
+      const response = await fetch("/api/settings/llm/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          baseUrl: llmBaseUrl,
+          model: llmModel,
+          apiKey,
+        }),
+      });
+
+      const payload = (await response.json()) as { message?: string; error?: string };
+      setLlmMessage(payload.message ?? payload.error ?? null);
+    } finally {
+      setLlmTesting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="rounded-[2rem] bg-stone-100/70 p-5">
-        <div className="flex items-center justify-between gap-4">
+        <div className="space-y-4">
           <div>
             <h3 className="text-lg font-medium text-stone-900">Bilibili Cookie</h3>
             <p className="mt-1 text-sm leading-6 text-stone-600">
-              粘贴浏览器中完整 Cookie 字符串。服务端会加密保存，仅用于拉取观看历史。
+              分开填写关键字段。服务端会自动组装为 Cookie 并加密保存，仅用于拉取观看历史。
             </p>
           </div>
-          <span className="rounded-full bg-stone-900 px-3 py-1 text-xs text-stone-50">
-            {props.cookiePreview ?? "未配置"}
-          </span>
+          <div className="rounded-3xl bg-stone-900 px-4 py-3 text-sm text-stone-50">
+            <p className="text-[11px] uppercase tracking-[0.25em] text-stone-400">Current preview</p>
+            <p className="mt-2 break-all leading-6 text-stone-100">
+              {props.cookiePreview ?? "未配置"}
+            </p>
+          </div>
         </div>
 
-        <textarea
-          value={cookie}
-          onChange={(event) => setCookie(event.target.value)}
-          rows={5}
-          className="mt-4 w-full rounded-3xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none ring-0 transition focus:border-stone-900"
-          placeholder="SESSDATA=...; bili_jct=...; DedeUserID=..."
-        />
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="space-y-2 md:col-span-2">
+            <span className="text-sm text-stone-600">SESSDATA</span>
+            <input
+              value={sessdata}
+              onChange={(event) => setSessdata(event.target.value)}
+              className="w-full rounded-full border border-stone-300 bg-white px-4 py-3 text-sm"
+              placeholder="必填"
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="text-sm text-stone-600">bili_jct</span>
+            <input
+              value={biliJct}
+              onChange={(event) => setBiliJct(event.target.value)}
+              className="w-full rounded-full border border-stone-300 bg-white px-4 py-3 text-sm"
+              placeholder="推荐填写"
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="text-sm text-stone-600">DedeUserID</span>
+            <input
+              value={dedeUserId}
+              onChange={(event) => setDedeUserId(event.target.value)}
+              className="w-full rounded-full border border-stone-300 bg-white px-4 py-3 text-sm"
+              placeholder="推荐填写"
+            />
+          </label>
+        </div>
+
+        <p className="mt-4 text-sm leading-6 text-stone-500">
+          至少需要 `SESSDATA`。如果同时填 `bili_jct` 和 `DedeUserID`，后续排查登录态问题会更方便。
+        </p>
 
         <div className="mt-4 flex items-center justify-between gap-4">
           <p className="text-sm text-stone-600">{cookieMessage}</p>
-          <button
-            type="button"
-            onClick={submitCookie}
-            className="rounded-full bg-stone-900 px-4 py-2 text-sm text-stone-50"
-          >
-            保存 Cookie
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={testCookie}
+              disabled={cookieTesting}
+              className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 disabled:cursor-not-allowed disabled:text-stone-400"
+            >
+              {cookieTesting ? "测试中..." : "测试 Cookie"}
+            </button>
+            <button
+              type="button"
+              onClick={submitCookie}
+              className="rounded-full bg-stone-900 px-4 py-2 text-sm text-stone-50"
+            >
+              保存 Cookie
+            </button>
+          </div>
         </div>
       </div>
 
@@ -151,13 +244,23 @@ export function SettingsClient(props: SettingsClientProps) {
 
         <div className="mt-4 flex items-center justify-between gap-4">
           <p className="text-sm text-stone-600">{llmMessage}</p>
-          <button
-            type="button"
-            onClick={submitLlm}
-            className="rounded-full bg-stone-900 px-4 py-2 text-sm text-stone-50"
-          >
-            保存设置
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={testLlm}
+              disabled={llmTesting}
+              className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 disabled:cursor-not-allowed disabled:text-stone-400"
+            >
+              {llmTesting ? "测试中..." : "测试 LLM"}
+            </button>
+            <button
+              type="button"
+              onClick={submitLlm}
+              className="rounded-full bg-stone-900 px-4 py-2 text-sm text-stone-50"
+            >
+              保存设置
+            </button>
+          </div>
         </div>
       </div>
     </div>

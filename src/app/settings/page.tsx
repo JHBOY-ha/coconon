@@ -1,10 +1,20 @@
 import { AppShell } from "@/components/app-shell";
 import { Panel } from "@/components/panel";
 import { SettingsClient } from "@/components/settings-client";
-import { ensureAppConfig, ensureBiliCredential } from "@/lib/server/config";
+import {
+  buildCookiePreview,
+  ensureAppConfig,
+  ensureBiliCredential,
+  getDecryptedCookie,
+} from "@/lib/server/config";
 
 export default async function SettingsPage() {
-  const [config, credential] = await Promise.all([ensureAppConfig(), ensureBiliCredential()]);
+  const [config, credential, rawCookie] = await Promise.all([
+    ensureAppConfig(),
+    ensureBiliCredential(),
+    getDecryptedCookie(),
+  ]);
+  const cookiePreview = rawCookie ? buildCookiePreview(rawCookie) : credential.cookiePreview;
 
   return (
     <AppShell currentPath="/settings">
@@ -19,7 +29,7 @@ export default async function SettingsPage() {
 
         <Panel>
           <SettingsClient
-            cookiePreview={credential.cookiePreview}
+            cookiePreview={cookiePreview}
             llmBaseUrl={config.llmBaseUrl}
             llmModel={config.llmModel}
             syncHour={config.syncHour}
