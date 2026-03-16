@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fffdf8;
+  --foreground: #24170b;
+  --color-paper: rgba(255, 255, 255, 0.8);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-manrope);
+  --font-serif: var(--font-dm-serif-display);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-manrope), sans-serif;
+}
+
+a,
+button {
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+::selection {
+  background: rgba(194, 126, 46, 0.18);
+}
+
+.report-body p + p {
+  margin-top: 1rem;
+}
