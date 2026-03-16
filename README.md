@@ -7,37 +7,13 @@
 > [!IMPORTANT]
 > 当前版本面向本机或内网环境设计，不建议直接暴露到公网。
 
-## 项目特点
+## 你可以用它做什么
 
-- 按天同步 Bilibili 观看历史，支持手动补跑和全量刷新
-- 使用规则标签优先、LLM 补充的方式抽取内容主题
-- 生成每日观看报告，并与前一天做对比
-- 输出信息茧房分数、风险等级和证据摘要
-- 本地 SQLite 存储，Cookie 和 LLM Key 入库前加密
-- 内置设置测试按钮，可直接验证 Cookie 和 LLM 配置
-- 首次启动自动初始化数据库、默认配置和空凭证记录
-
-## 技术栈
-
-- `Next.js 16` + App Router
-- `better-sqlite3`
-- `node-cron`
-- `OpenAI-compatible` 接口
-- `Vitest`
-- `Tailwind CSS 4`
-
-## 目录概览
-
-```text
-src/
-  app/                   页面与 API 路由
-  components/            设置页、卡片、手动操作组件
-  lib/
-    server/              Bilibili、LLM、任务、调度、报告生成
-    cocoon-score.ts      信息茧房评分逻辑
-    prisma.ts            SQLite 封装与表初始化
-  test/                  纯逻辑测试
-```
+- 自动同步 Bilibili 观看历史
+- 每天生成一份观看日报
+- 对比前一天，观察内容是否更集中
+- 输出信息茧房分数、风险等级和证据
+- 手动补跑同步、重算日报、查看任务历史
 
 ## 快速开始
 
@@ -112,7 +88,7 @@ npm run dev
 - **全量刷新一次**：首次接入建议使用，会抓取更多历史记录
 - **生成今日日报**：基于现有数据重算当日报告
 
-## 页面说明
+## 主要页面
 
 | 页面 | 作用 |
 | --- | --- |
@@ -120,19 +96,6 @@ npm run dev
 | `/settings` | 配置 Cookie、LLM 与定时策略 |
 | `/jobs` | 查看同步、标签、日报任务历史 |
 | `/reports/[date]` | 查看单日详细报告 |
-
-## API 一览
-
-| 方法 | 路径 | 说明 |
-| --- | --- | --- |
-| `POST` | `/api/settings/cookie` | 保存 Cookie |
-| `POST` | `/api/settings/cookie/test` | 测试当前或输入中的 Cookie |
-| `POST` | `/api/settings/llm` | 保存 LLM 配置 |
-| `POST` | `/api/settings/llm/test` | 测试当前或输入中的 LLM 配置 |
-| `POST` | `/api/sync/run` | 执行同步或全量刷新 |
-| `POST` | `/api/reports/run` | 生成今日日报 |
-| `GET` | `/api/reports/[date]` | 获取某日报告 |
-| `GET` | `/api/dashboard/summary` | 获取首页摘要数据 |
 
 ## 日报与评分逻辑
 
@@ -152,14 +115,6 @@ npm run dev
 - `低 / 中 / 高` 风险等级
 - 与前一天相比的结论
 - 2 到 4 条可解释证据
-
-## 验证命令
-
-```bash
-npm run lint
-npm run test
-npm run build
-```
 
 ## 常见问题
 
@@ -193,9 +148,56 @@ npm run build
 
 这不会影响数据和分数，只影响自然语言描述部分。
 
-## 当前定位
+## 实现说明
 
-这是一个偏 MVP 的本地分析工具，重点是把下面这条链路跑通：
+如果你只是使用这个应用，这一节可以跳过。
+
+### 技术栈
+
+- `Next.js 16` + App Router
+- `better-sqlite3`
+- `node-cron`
+- `OpenAI-compatible` 接口
+- `Vitest`
+- `Tailwind CSS 4`
+
+### 目录概览
+
+```text
+src/
+  app/                   页面与 API 路由
+  components/            设置页、卡片、手动操作组件
+  lib/
+    server/              Bilibili、LLM、任务、调度、报告生成
+    cocoon-score.ts      信息茧房评分逻辑
+    prisma.ts            SQLite 封装与表初始化
+  test/                  纯逻辑测试
+```
+
+### API 一览
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `POST` | `/api/settings/cookie` | 保存 Cookie |
+| `POST` | `/api/settings/cookie/test` | 测试当前或输入中的 Cookie |
+| `POST` | `/api/settings/llm` | 保存 LLM 配置 |
+| `POST` | `/api/settings/llm/test` | 测试当前或输入中的 LLM 配置 |
+| `POST` | `/api/sync/run` | 执行同步或全量刷新 |
+| `POST` | `/api/reports/run` | 生成今日日报 |
+| `GET` | `/api/reports/[date]` | 获取某日报告 |
+| `GET` | `/api/dashboard/summary` | 获取首页摘要数据 |
+
+### 验证命令
+
+```bash
+npm run lint
+npm run test
+npm run build
+```
+
+## 当前阶段
+
+这是一个偏 MVP 的本地分析工具，重点是把下面这条链路：
 
 1. 录入凭证
 2. 验证配置
@@ -203,10 +205,3 @@ npm run build
 4. 标注主题
 5. 生成日报
 6. 追踪注意力收窄趋势
-
-如果你准备继续往下做，下一阶段比较自然的方向是：
-
-- 报告来源标记：明确区分“LLM 生成”与“模板降级”
-- 历史趋势图：拉长到周 / 月维度
-- 更稳定的分类词表与主题聚类
-- 多模型切换和成本控制
