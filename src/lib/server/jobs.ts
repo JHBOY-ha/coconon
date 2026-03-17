@@ -49,12 +49,13 @@ export async function getTagQueueOverview(maxItems?: number) {
   };
 }
 
-export async function runSyncJob(trigger: string, full = false) {
-  const job = await startJob(JobType.SYNC, trigger, { full });
+export async function runSyncJob(trigger: string, options: { full?: boolean; days?: number } = {}) {
+  const full = options.full ?? false;
+  const job = await startJob(JobType.SYNC, trigger, { full, days: options.days ?? null });
   const startedAt = new Date();
 
   try {
-    const result = await syncWatchHistory({ trigger, full });
+    const result = await syncWatchHistory({ trigger, full, days: options.days });
     await finishJob(job.id, JobStatus.SUCCESS, startedAt, { details: result });
     return result;
   } catch (error) {
@@ -205,7 +206,7 @@ export async function runFullPipeline(trigger: string, options: { full?: boolean
   const startedAt = new Date();
 
   try {
-    const sync = await runSyncJob(`${trigger}:sync`, options.full);
+    const sync = await runSyncJob(`${trigger}:sync`, { full: options.full });
     const tags = await runTagJob(`${trigger}:tag`);
     const report = await runReportJob(`${trigger}:report`, {
       period: "both",

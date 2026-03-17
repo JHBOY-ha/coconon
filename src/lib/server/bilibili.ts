@@ -36,6 +36,7 @@ type CursorState = {
 type SyncOptions = {
   trigger: string;
   full?: boolean;
+  days?: number;
 };
 
 function parseCookie(cookie: string) {
@@ -212,8 +213,9 @@ export async function syncWatchHistory(options: SyncOptions) {
   let updated = 0;
   let pages = 0;
   let reachedCutoff = false;
-  const cutoff = addDays(new Date(), -2);
-  const maxPages = options.full ? 20 : 6;
+  const days = Number.isInteger(options.days) && (options.days ?? 0) > 0 ? (options.days as number) : 2;
+  const cutoff = addDays(new Date(), -days);
+  const maxPages = options.full ? 20 : Math.max(6, days * 4);
 
   while (pages < maxPages && !reachedCutoff) {
     const page = await fetchHistoryPage(cookie, cursor);
@@ -268,6 +270,7 @@ export async function syncWatchHistory(options: SyncOptions) {
     updated,
     pages,
     reachedCutoff,
+    days,
   };
 }
 
