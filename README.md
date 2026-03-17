@@ -25,22 +25,7 @@
 npm install
 ```
 
-### 2. 准备环境变量
-
-```bash
-cp .env.example .env
-```
-
-可用环境变量：
-
-| 变量 | 说明 | 默认值 |
-| --- | --- | --- |
-| `DATABASE_URL` | SQLite 文件路径 | `file:./dev.db` |
-| `COCONON_ENCRYPTION_KEY` | 用于加密 Cookie / LLM Key | 无 |
-| `COCONON_LLM_BASE_URL` | 默认 LLM 接口地址 | `https://api.openai.com/v1` |
-| `COCONON_LLM_MODEL` | 默认模型名 | `gpt-4o-mini` |
-
-### 3. 启动开发环境
+### 2. 启动开发环境
 
 ```bash
 npm run dev
