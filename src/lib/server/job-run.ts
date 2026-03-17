@@ -37,3 +37,12 @@ export async function finishJob(
     },
   })) as JobRunRecord;
 }
+
+export async function updateJobDetails(jobId: string, details: unknown): Promise<JobRunRecord> {
+  return (await prisma.jobRun.update({
+    where: { id: jobId },
+    data: {
+      details: JSON.stringify(details),
+    },
+  })) as JobRunRecord;
+}

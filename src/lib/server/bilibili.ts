@@ -82,7 +82,16 @@ function normalizeHistoryItem(item: RawHistoryItem) {
 }
 
 export function deriveViewingAt(timestamp: number) {
-  const hour = new Date(timestamp * 1000).getHours();
+  if (!Number.isFinite(timestamp) || timestamp <= 0) {
+    return null;
+  }
+
+  const date = new Date(timestamp * 1000);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const hour = date.getHours();
 
   if (hour < 6) {
     return "凌晨";

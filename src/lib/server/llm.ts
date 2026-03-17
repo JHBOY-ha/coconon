@@ -172,7 +172,7 @@ export async function generateNarrativeReport(payload: ReportPromptPayload) {
 
   const parsed = narrativeReportSchema.parse(await requestJson(
     bundle,
-    "你是 coconon 的日报助手。请根据结构化指标输出 JSON：{summary: string, body: string}。summary 为一段简短结论。body 必须使用 Markdown，允许使用标题、粗体、列表和引用；要求简洁、具体，明确说明相比上一天是更窄、更宽还是持平，并给出 2-3 条证据。",
+    "你是 coconon 的比较型报告助手。请根据两个时间窗口的结构化对比结果输出 JSON：{summary: string, body: string}。summary 只写一句结论。body 必须使用 Markdown，允许使用标题、粗体、列表和引用；必须明确说明当前窗口相对上一窗口是更进入信息茧房、局部收窄、基本持平还是有所扩散，并引用 2 到 4 条具体证据。若 sampleSufficient=false，必须明确写出样本不足，不要伪造总分。",
     JSON.stringify(payload),
   )) as { summary: string; body: string };
 

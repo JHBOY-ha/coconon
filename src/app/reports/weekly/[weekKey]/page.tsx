@@ -4,18 +4,17 @@ import { AppShell } from "@/components/app-shell";
 import { ComparisonReportView } from "@/components/comparison-report-view";
 import { prisma } from "@/lib/prisma";
 import { parseComparisonBreakdown } from "@/lib/server/reporting";
-import type { DailyReportRecord } from "@/lib/store-types";
-import { parseDayKey } from "@/lib/utils";
+import type { WeeklyReportRecord } from "@/lib/store-types";
 
-export default async function ReportDetailPage({
+export default async function WeeklyReportDetailPage({
   params,
 }: {
-  params: Promise<{ date: string }>;
+  params: Promise<{ weekKey: string }>;
 }) {
-  const { date } = await params;
-  const report = (await prisma.dailyReport.findUnique({
-    where: { date: parseDayKey(date) },
-  })) as DailyReportRecord | null;
+  const { weekKey } = await params;
+  const report = (await prisma.weeklyReport.findUnique({
+    where: { weekKey },
+  })) as WeeklyReportRecord | null;
 
   if (!report) {
     notFound();
@@ -24,8 +23,8 @@ export default async function ReportDetailPage({
   return (
     <AppShell currentPath="/">
       <ComparisonReportView
-        heading={date}
-        subheading="Daily report"
+        heading={weekKey}
+        subheading="Weekly report"
         summary={report.summary}
         body={report.body}
         score={report.cocononScore}

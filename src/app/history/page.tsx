@@ -2,7 +2,14 @@ import { AppShell } from "@/components/app-shell";
 import { Panel } from "@/components/panel";
 import { prisma } from "@/lib/prisma";
 import type { ContentTagRecord, WatchHistoryItemRecord } from "@/lib/store-types";
-import { estimateWatchedSeconds, formatDateTime, formatMinutesFromSeconds, startOfDay, endOfDay } from "@/lib/utils";
+import {
+  endOfDay,
+  estimateWatchedSeconds,
+  formatDateTime,
+  formatMinutesFromSeconds,
+  sanitizeContentLabel,
+  startOfDay,
+} from "@/lib/utils";
 
 export default async function TodayHistoryPage() {
   const today = new Date();
@@ -55,7 +62,16 @@ export default async function TodayHistoryPage() {
             {items.length > 0 ? (
               items.map((item) => {
                 const estimated = estimateWatchedSeconds(item.duration, item.progress);
-                const labels = item.contentTags.map((tag) => tag.label).slice(0, 4);
+                const labels =
+                  item.contentTags.length > 0
+                    ? item.contentTags
+                        .map((tag) => sanitizeContentLabel(tag.label))
+                        .filter((value): value is string => Boolean(value))
+                        .slice(0, 4)
+                    : [item.subTagName, item.tagName]
+                        .map((label) => sanitizeContentLabel(label))
+                        .filter((value): value is string => Boolean(value))
+                        .slice(0, 2);
 
                 return (
                   <article

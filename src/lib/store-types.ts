@@ -65,8 +65,11 @@ export type WatchHistoryItemRecord = {
 export type DailySnapshotRecord = {
   id: string;
   date: Date;
+  windowStart: Date;
+  windowEnd: Date;
   totalVideos: number;
   totalDuration: number;
+  avgDuration: number;
   uniqueAuthors: number;
   uniqueTopics: number;
   activeHours: string;
@@ -74,7 +77,27 @@ export type DailySnapshotRecord = {
   zoneDistribution: string;
   authorDistribution: string;
   noveltyRatio: number | null;
-  scoreBreakdown: string;
+  metrics: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type WeeklySnapshotRecord = {
+  id: string;
+  weekKey: string;
+  windowStart: Date;
+  windowEnd: Date;
+  totalVideos: number;
+  totalDuration: number;
+  avgDuration: number;
+  uniqueAuthors: number;
+  uniqueTopics: number;
+  activeHours: string;
+  topicDistribution: string;
+  zoneDistribution: string;
+  authorDistribution: string;
+  noveltyRatio: number | null;
+  metrics: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -84,11 +107,33 @@ export type DailyReportRecord = {
   date: Date;
   summary: string;
   body: string;
-  cocoonScore: number;
-  cocoonLevel: string;
+  cocononScore: number | null;
+  cocononLevel: "低" | "中" | "高" | null;
   comparisonLabel: string;
+  comparisonTarget: string;
+  comparisonBreakdown: string;
   evidence: string;
   metrics: string;
+  sampleSufficient: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type WeeklyReportRecord = {
+  id: string;
+  weekKey: string;
+  windowStart: Date;
+  windowEnd: Date;
+  summary: string;
+  body: string;
+  cocononScore: number | null;
+  cocononLevel: "低" | "中" | "高" | null;
+  comparisonLabel: string;
+  comparisonTarget: string;
+  comparisonBreakdown: string;
+  evidence: string;
+  metrics: string;
+  sampleSufficient: number;
   createdAt: Date;
   updatedAt: Date;
 };

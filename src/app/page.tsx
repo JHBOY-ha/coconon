@@ -5,10 +5,14 @@ import { AppShell } from "@/components/app-shell";
 import { ManualActions } from "@/components/manual-actions";
 import { Panel } from "@/components/panel";
 import { getDashboardSummary } from "@/lib/server/dashboard";
-import type { DailyReportRecord, JobRunRecord } from "@/lib/store-types";
-import { formatDateTime, formatDay, percent } from "@/lib/utils";
+import type { DailyReportRecord, JobRunRecord, WeeklyReportRecord } from "@/lib/store-types";
+import { formatDateTime, formatDay } from "@/lib/utils";
 
-function ScoreBadge({ score, level }: { score: number; level: string }) {
+function ScoreBadge({ score, level }: { score: number | null; level: string | null }) {
+  if (score == null || !level) {
+    return <span className="rounded-full bg-stone-200 px-3 py-1 text-sm text-stone-600">样本不足</span>;
+  }
+
   const palette =
     level === "高"
       ? "bg-red-100 text-red-800"
@@ -23,71 +27,75 @@ function ScoreBadge({ score, level }: { score: number; level: string }) {
   );
 }
 
+function ReportHeroCard({
+  label,
+  summary,
+  href,
+  score,
+  level,
+  title,
+}: {
+  label: string;
+  title: string;
+  summary: string | null;
+  href: string | null;
+  score: number | null;
+  level: string | null;
+}) {
+  return (
+    <div className="rounded-[2rem] bg-stone-900 p-6 text-stone-50">
+      <div className="flex items-center justify-between text-sm text-stone-300">
+        <span>{label}</span>
+        <ScoreBadge score={score} level={level} />
+      </div>
+      <p className="mt-4 text-lg text-stone-300">{title}</p>
+      <p className="mt-3 text-2xl leading-9">{summary ?? "还没有生成这类报告。"}</p>
+      {href ? (
+        <Link href={href} className="mt-6 inline-flex items-center gap-2 text-sm text-stone-50 underline underline-offset-4">
+          打开详情 <ArrowRight className="h-4 w-4" />
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
 export default async function HomePage() {
   const summary = await getDashboardSummary();
-  const latestReport = summary.latestReport;
-  const latestMetrics = latestReport?.metrics as
-    | string
-    | undefined;
-  const parsedMetrics = latestMetrics
-    ? (JSON.parse(latestMetrics) as {
-        totalVideos?: number;
-        estimatedDuration?: string;
-        noveltyRatio?: number | null;
-      })
-    : undefined;
+  const latestDaily = summary.latestDailyReport;
+  const latestWeekly = summary.latestWeeklyReport;
 
   return (
     <AppShell currentPath="/">
       <div className="space-y-6">
         <Panel className="overflow-hidden">
-          <div className="grid gap-8 lg:grid-cols-[1.4fr_0.9fr]">
+          <div className="space-y-8">
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.35em] text-stone-500">Dashboard</p>
-              <h2 className="mt-4 max-w-3xl font-serif text-5xl leading-tight text-stone-950">
-                把每天刷过的视频，变成一份关于注意力结构的日报。
+              <h2 className="mt-4 max-w-4xl font-serif text-5xl leading-tight text-stone-950">
+                把每天刷过的视频，变成一份关于注意力结构变化的报告。
               </h2>
-              <p className="mt-4 max-w-2xl text-base leading-8 text-stone-600">
-                coconon 会自动同步 Bilibili 观看历史，识别主题、追踪变化，并给出“今天是否更容易陷进信息茧房”的判断。
+              <p className="mt-4 max-w-3xl text-base leading-8 text-stone-600">
+                coconon 不再只看“今天内部是否集中”，而是比较今日与昨日、本周与上周，判断你是否正在更深地进入信息茧房。
               </p>
             </div>
 
-            <div className="rounded-[2rem] bg-stone-900 p-6 text-stone-50">
-              <div className="flex items-center justify-between text-sm text-stone-300">
-                <span>最新日报</span>
-                {latestReport ? <span>{formatDay(latestReport.date)}</span> : null}
-              </div>
-              {latestReport ? (
-                <>
-                  <div className="mt-4">
-                    <ScoreBadge score={latestReport.cocoonScore} level={latestReport.cocoonLevel} />
-                  </div>
-                  <p className="mt-4 text-2xl leading-9">{latestReport.summary}</p>
-                  <div className="mt-6 grid grid-cols-2 gap-3 text-sm text-stone-200">
-                    <div className="rounded-2xl bg-white/10 p-4">
-                      <p>观看条数</p>
-                      <p className="mt-2 text-xl text-stone-50">{parsedMetrics?.totalVideos ?? 0}</p>
-                    </div>
-                    <div className="rounded-2xl bg-white/10 p-4">
-                      <p>估算观看时长</p>
-                      <p className="mt-2 text-xl text-stone-50">{parsedMetrics?.estimatedDuration ?? "0 分钟"}</p>
-                    </div>
-                  </div>
-                  <Link
-                    href={`/reports/${formatDay(latestReport.date)}`}
-                    className="mt-6 inline-flex items-center gap-2 text-sm text-stone-50 underline underline-offset-4"
-                  >
-                    打开日报 <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </>
-              ) : (
-                <div className="mt-6 space-y-4">
-                  <p className="text-lg text-stone-200">还没有日报。先在设置页绑定 Cookie，然后执行一次全量同步。</p>
-                  <Link href="/settings" className="inline-flex items-center gap-2 text-sm underline underline-offset-4">
-                    去设置页 <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </div>
-              )}
+            <div className="grid gap-4 lg:grid-cols-2">
+              <ReportHeroCard
+                label="今日日分"
+                title={latestDaily?.comparisonLabel ?? "尚无日报"}
+                summary={latestDaily?.summary ?? null}
+                href={latestDaily ? `/reports/${formatDay(latestDaily.date)}` : null}
+                score={latestDaily?.cocononScore ?? null}
+                level={latestDaily?.cocononLevel ?? null}
+              />
+              <ReportHeroCard
+                label="本周周分"
+                title={latestWeekly?.comparisonLabel ?? "尚无周报"}
+                summary={latestWeekly?.summary ?? null}
+                href={latestWeekly ? `/reports/weekly/${latestWeekly.weekKey}` : null}
+                score={latestWeekly?.cocononScore ?? null}
+                level={latestWeekly?.cocononLevel ?? null}
+              />
             </div>
           </div>
         </Panel>
@@ -112,17 +120,17 @@ export default async function HomePage() {
           <Panel>
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm uppercase tracking-[0.25em] text-stone-500">Recent reports</p>
-                <h3 className="mt-2 font-serif text-3xl">最近 7 天</h3>
+                <p className="text-sm uppercase tracking-[0.25em] text-stone-500">Recent daily reports</p>
+                <h3 className="mt-2 font-serif text-3xl">最近日报</h3>
               </div>
               <div className="rounded-full bg-stone-100 px-4 py-2 text-sm text-stone-600">
-                {summary.reports.length} 份日报
+                {summary.dailyReports.length} 份日报
               </div>
             </div>
 
             <div className="mt-6 space-y-4">
-              {summary.reports.length > 0 ? (
-                summary.reports.map((report: DailyReportRecord & { dayKey: string }) => (
+              {summary.dailyReports.length > 0 ? (
+                summary.dailyReports.map((report: DailyReportRecord & { dayKey: string }) => (
                   <Link
                     key={report.id}
                     href={`/reports/${report.dayKey}`}
@@ -133,20 +141,49 @@ export default async function HomePage() {
                       <p className="mt-2 text-base text-stone-900">{report.summary}</p>
                     </div>
                     <div className="text-right">
-                      <ScoreBadge score={report.cocoonScore} level={report.cocoonLevel} />
+                      <ScoreBadge score={report.cocononScore} level={report.cocononLevel} />
                       <p className="mt-2 text-sm text-stone-500">{report.comparisonLabel}</p>
                     </div>
                   </Link>
                 ))
               ) : (
                 <div className="rounded-[1.5rem] border border-dashed border-stone-300 p-6 text-sm leading-7 text-stone-600">
-                  目前没有可回看的日报。配置 Cookie 后执行同步和日报生成，这里会自动出现历史记录。
+                  目前没有可回看的日报。完成同步、补标签后生成今日日报即可。
                 </div>
               )}
             </div>
           </Panel>
 
           <div className="space-y-6">
+            <Panel>
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-5 w-5 text-stone-700" />
+                <h3 className="font-serif text-2xl text-stone-950">最近周报</h3>
+              </div>
+              <div className="mt-5 space-y-4">
+                {summary.weeklyReports.length > 0 ? (
+                  summary.weeklyReports.map((report: WeeklyReportRecord & { hrefKey: string }) => (
+                    <Link
+                      key={report.id}
+                      href={`/reports/weekly/${report.hrefKey}`}
+                      className="block rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-4 hover:border-stone-900/20"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <p className="text-sm uppercase tracking-[0.2em] text-stone-500">{report.hrefKey}</p>
+                        <ScoreBadge score={report.cocononScore} level={report.cocononLevel} />
+                      </div>
+                      <p className="mt-2 text-base text-stone-900">{report.summary}</p>
+                      <p className="mt-2 text-sm text-stone-500">{report.comparisonLabel}</p>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="rounded-[1.5rem] border border-dashed border-stone-300 p-6 text-sm leading-7 text-stone-600">
+                    目前没有可回看的周报。生成本周周报后，这里会出现周趋势结果。
+                  </div>
+                )}
+              </div>
+            </Panel>
+
             <Panel>
               <div className="flex items-center gap-3">
                 <BrainCircuit className="h-5 w-5 text-stone-700" />
@@ -176,47 +213,13 @@ export default async function HomePage() {
 
             <Panel>
               <div className="flex items-center gap-3">
-                <Sparkles className="h-5 w-5 text-stone-700" />
-                <h3 className="font-serif text-2xl text-stone-950">最近一次判断</h3>
-              </div>
-              {latestReport ? (
-                <div className="mt-5 space-y-4">
-                  <div className="rounded-3xl bg-stone-100/70 p-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-stone-600">结论</span>
-                      <span className="text-sm font-medium text-stone-900">{latestReport.comparisonLabel}</span>
-                    </div>
-                    <p className="mt-3 text-sm leading-7 text-stone-700">{latestReport.summary}</p>
-                  </div>
-                  <div className="rounded-3xl bg-stone-100/70 p-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-stone-600">新颖度</span>
-                        <span className="text-sm font-medium text-stone-900">
-                        {parsedMetrics?.noveltyRatio != null ? percent(parsedMetrics.noveltyRatio) : "样本不足"}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm text-stone-500">
-                      新颖度越低，说明今天内容更容易落在你已经熟悉的主题和 UP 主范围内。
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-5 flex items-center gap-3 rounded-3xl bg-stone-100/70 p-4 text-sm leading-7 text-stone-600">
-                  <AlertTriangle className="h-5 w-5 shrink-0 text-stone-500" />
-                  尚无判断结果。
-                </div>
-              )}
-            </Panel>
-
-            <Panel>
-              <div className="flex items-center gap-3">
                 <BrainCircuit className="h-5 w-5 text-stone-700" />
                 <h3 className="font-serif text-2xl text-stone-950">评分怎么来的</h3>
               </div>
               <div className="mt-4 space-y-3 text-sm leading-7 text-stone-600">
-                <p>当前风险分数不是模型主观判断，而是规则分加上 LLM 解读。</p>
-                <p>规则分主要看 5 个维度：主题是否收窄、分区是否集中、UP 主是否重复、新颖度是否下降、观看时段和时长是否更隧道化。</p>
-                <p>权重大致是：主题收窄 28%、UP 主重复 22%、分区集中 18%、新颖度下降 18%、时段/时长隧道化 14%。</p>
+                <p>当前的 coconon score 是比较分，不是静态兴趣分。</p>
+                <p>日分比较“今日 vs 昨日”，周分比较“本周 vs 上周”。系统会对主题、分区、UP 主、新颖度、观看时长与时段这 5 个维度逐项比较。</p>
+                <p>只有多个维度一起朝更窄方向变化时，才会判定为更进入信息茧房；样本不足时不输出总分。</p>
               </div>
             </Panel>
 
@@ -241,6 +244,15 @@ export default async function HomePage() {
             </Panel>
           </div>
         </div>
+
+        {!latestDaily && !latestWeekly ? (
+          <Panel>
+            <div className="flex items-center gap-3 rounded-3xl bg-stone-100/70 p-4 text-sm leading-7 text-stone-600">
+              <AlertTriangle className="h-5 w-5 shrink-0 text-stone-500" />
+              尚无比较报告。先同步历史并补全标签，再生成日报或周报。
+            </div>
+          </Panel>
+        ) : null}
       </div>
     </AppShell>
   );

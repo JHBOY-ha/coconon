@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       const result = await runSyncJob("manual:full", true);
       return NextResponse.json({
         ok: true,
-        message: `全量刷新完成，新增 ${result.inserted} 条，更新 ${result.updated} 条。日报需要手动点击“生成今日日报”。`,
+        message: `全量刷新完成，新增 ${result.inserted} 条，更新 ${result.updated} 条。标签补全和日报生成需要手动触发。`,
       });
     }
 

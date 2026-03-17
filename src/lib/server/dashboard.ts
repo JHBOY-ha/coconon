@@ -5,39 +5,55 @@ import type {
   BiliCredentialRecord,
   DailyReportRecord,
   JobRunRecord,
+  WeeklyReportRecord,
 } from "@/lib/store-types";
-import { formatDay } from "@/lib/utils";
+import { formatDay, formatWeekKey } from "@/lib/utils";
 
 export async function getDashboardSummary(): Promise<{
   appConfig: AppConfigRecord;
   credential: BiliCredentialRecord;
-  latestReport: DailyReportRecord | null;
-  reports: Array<DailyReportRecord & { dayKey: string }>;
+  latestDailyReport: DailyReportRecord | null;
+  latestWeeklyReport: WeeklyReportRecord | null;
+  dailyReports: Array<DailyReportRecord & { dayKey: string }>;
+  weeklyReports: Array<WeeklyReportRecord & { hrefKey: string }>;
   recentJobs: JobRunRecord[];
 }> {
-  const [appConfig, credential, latestReport, reports, recentJobs] = await Promise.all([
-    ensureAppConfig(),
-    ensureBiliCredential(),
-    prisma.dailyReport.findFirst({
-      orderBy: { date: "desc" },
-    }),
-    prisma.dailyReport.findMany({
-      orderBy: { date: "desc" },
-      take: 7,
-    }),
-    prisma.jobRun.findMany({
-      orderBy: { startedAt: "desc" },
-      take: 8,
-    }),
-  ]);
+  const [appConfig, credential, latestDailyReport, latestWeeklyReport, dailyReports, weeklyReports, recentJobs] =
+    await Promise.all([
+      ensureAppConfig(),
+      ensureBiliCredential(),
+      prisma.dailyReport.findFirst({
+        orderBy: { date: "desc" },
+      }),
+      prisma.weeklyReport.findFirst({
+        orderBy: { windowStart: "desc" },
+      }),
+      prisma.dailyReport.findMany({
+        orderBy: { date: "desc" },
+        take: 7,
+      }),
+      prisma.weeklyReport.findMany({
+        orderBy: { windowStart: "desc" },
+        take: 4,
+      }),
+      prisma.jobRun.findMany({
+        orderBy: { startedAt: "desc" },
+        take: 8,
+      }),
+    ]);
 
   return {
     appConfig: appConfig as AppConfigRecord,
     credential: credential as BiliCredentialRecord,
-    latestReport: latestReport as DailyReportRecord | null,
-    reports: (reports as DailyReportRecord[]).map((report: DailyReportRecord) => ({
+    latestDailyReport: latestDailyReport as DailyReportRecord | null,
+    latestWeeklyReport: latestWeeklyReport as WeeklyReportRecord | null,
+    dailyReports: (dailyReports as DailyReportRecord[]).map((report) => ({
       ...report,
       dayKey: formatDay(report.date),
+    })),
+    weeklyReports: (weeklyReports as WeeklyReportRecord[]).map((report) => ({
+      ...report,
+      hrefKey: formatWeekKey(report.windowStart),
     })),
     recentJobs: recentJobs as JobRunRecord[],
   };
