@@ -31,15 +31,15 @@ function formatEstimate(seconds: number) {
 
 function SyncHistoryCard() {
   const router = useRouter();
-  const [days, setDays] = useState("2");
+  const [days, setDays] = useState("7");
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   async function handleClick() {
     const parsedDays = Number(days);
 
-    if (!Number.isInteger(parsedDays) || parsedDays < 1 || parsedDays > 30) {
-      setMessage("同步天数必须是 1 到 30 之间的整数。");
+    if (!Number.isInteger(parsedDays) || parsedDays < 1 || parsedDays > 365) {
+      setMessage("抓取跨度必须是 1 到 365 天之间的整数。");
       return;
     }
 
@@ -73,9 +73,9 @@ function SyncHistoryCard() {
     <div className="rounded-3xl bg-stone-100/80 p-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h3 className="font-medium text-stone-900">同步最近观看历史</h3>
+          <h3 className="font-medium text-stone-900">抓取历史记录</h3>
           <p className="mt-1 text-sm leading-6 text-stone-600">
-            自定义拉取最近几天的观看记录。适合补同步最近 1 到 30 天的数据，不会自动补标签或生成日报。
+            按选择的时间跨度回拉历史记录。跨度越长，抓取时间越久；抓取完成后仍需手动补标签和生成报告。
           </p>
         </div>
         <button
@@ -88,20 +88,29 @@ function SyncHistoryCard() {
         </button>
       </div>
 
-      <div className="mt-4 max-w-xs">
-        <label className="block text-sm text-stone-600" htmlFor="sync-days">
-          同步前几天
-        </label>
-        <input
-          id="sync-days"
-          type="number"
-          min={1}
-          max={30}
-          step={1}
-          value={days}
-          onChange={(event) => setDays(event.target.value)}
-          className="mt-2 w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-stone-900 outline-none transition focus:border-stone-900"
-        />
+      <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
+        <div>
+          <label className="block text-sm text-stone-600" htmlFor="sync-days">
+            抓取时间跨度
+          </label>
+          <select
+            id="sync-days"
+            value={days}
+            onChange={(event) => setDays(event.target.value)}
+            className="mt-2 w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-stone-900 outline-none transition focus:border-stone-900"
+          >
+            <option value="1">最近 1 天</option>
+            <option value="3">最近 3 天</option>
+            <option value="7">最近 7 天</option>
+            <option value="14">最近 14 天</option>
+            <option value="30">最近 30 天</option>
+            <option value="90">最近 90 天</option>
+            <option value="365">尽可能多</option>
+          </select>
+        </div>
+        <p className="self-end text-sm leading-6 text-stone-600">
+          “尽可能多” 会持续翻页抓取更早历史，直到命中当前内置上限或没有更多记录。
+        </p>
       </div>
 
       {message ? <p className="mt-3 text-sm text-stone-700">{message}</p> : null}
@@ -261,7 +270,7 @@ function TagEnrichmentCard() {
         <div className="max-w-3xl">
           <h3 className="font-serif text-2xl text-stone-950">LLM 补全标签</h3>
           <p className="mt-2 text-sm leading-6 text-stone-600">
-            这个任务会扫描所有待补标签的视频，规则足够时直接补齐，不够时才调用 LLM。适合在全量刷新之后单独运行。
+            这个任务会扫描所有待补标签的视频，规则足够时直接补齐，不够时才调用 LLM。适合在抓取历史之后单独运行。
           </p>
         </div>
         <button
@@ -322,15 +331,7 @@ export function ManualActions() {
     <div className="space-y-4">
       <TagEnrichmentCard />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <SyncHistoryCard />
-        <ActionButton
-          title="全量刷新一次"
-          description="首次绑定 Cookie 后建议执行。会分页抓取更多历史记录，但不会自动补标签或生成日报。"
-          endpoint="/api/sync/run"
-          body={{ full: true }}
-        />
-      </div>
+      <SyncHistoryCard />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ActionButton

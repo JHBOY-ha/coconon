@@ -215,7 +215,7 @@ export async function syncWatchHistory(options: SyncOptions) {
   let reachedCutoff = false;
   const days = Number.isInteger(options.days) && (options.days ?? 0) > 0 ? (options.days as number) : 2;
   const cutoff = addDays(new Date(), -days);
-  const maxPages = options.full ? 20 : Math.max(6, days * 4);
+  const maxPages = options.full ? 300 : Math.min(300, Math.max(12, days * 24));
 
   while (pages < maxPages && !reachedCutoff) {
     const page = await fetchHistoryPage(cookie, cursor);
@@ -270,6 +270,7 @@ export async function syncWatchHistory(options: SyncOptions) {
     updated,
     pages,
     reachedCutoff,
+    hitPageLimit: pages >= maxPages && !reachedCutoff,
     days,
   };
 }
