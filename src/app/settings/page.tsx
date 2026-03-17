@@ -7,6 +7,7 @@ import {
   ensureBiliCredential,
   getDecryptedCookie,
 } from "@/lib/server/config";
+import { getDefaultLlmBaseUrl, getDefaultLlmModel } from "@/lib/env";
 
 export default async function SettingsPage() {
   const [config, credential, rawCookie] = await Promise.all([
@@ -32,8 +33,11 @@ export default async function SettingsPage() {
             cookiePreview={cookiePreview}
             llmBaseUrl={config.llmBaseUrl}
             llmModel={config.llmModel}
+            llmEnabled={Boolean(config.llmEnabled)}
             syncHour={config.syncHour}
             syncMinute={config.syncMinute}
+            defaultLlmBaseUrl={getDefaultLlmBaseUrl()}
+            defaultLlmModel={getDefaultLlmModel()}
           />
         </Panel>
       </div>

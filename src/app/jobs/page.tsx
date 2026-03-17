@@ -2,7 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { Panel } from "@/components/panel";
 import { prisma } from "@/lib/prisma";
 import type { JobRunRecord } from "@/lib/store-types";
-import { formatDay } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 
 export default async function JobsPage() {
   const jobs = (await prisma.jobRun.findMany({
@@ -40,7 +40,7 @@ export default async function JobsPage() {
                   <div>
                     <p className="text-sm text-stone-500">执行信息</p>
                     <p className="mt-2 text-sm leading-6 text-stone-700">
-                      {formatDay(job.startedAt)}
+                      {formatDateTime(job.startedAt)}
                       {job.durationMs ? ` · ${job.durationMs}ms` : ""}
                     </p>
                     <p className="mt-1 text-sm leading-6 text-stone-600">

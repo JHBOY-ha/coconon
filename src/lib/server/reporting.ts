@@ -6,6 +6,7 @@ import type { DistributionEntry, ReportPromptPayload } from "@/lib/types";
 import {
   addDays,
   endOfDay,
+  estimateWatchedSeconds,
   formatDay,
   formatDuration,
   parseDayKey,
@@ -31,6 +32,13 @@ function buildDistribution(values: string[]) {
       share: total === 0 ? 0 : count / total,
     }))
     .sort((a, b) => b.count - a.count);
+}
+
+function getEstimatedDurationSeconds(items: Array<{ duration: number; progress: number | null }>) {
+  return items.reduce(
+    (sum, item) => sum + estimateWatchedSeconds(item.duration, item.progress),
+    0,
+  );
 }
 
 function deriveRuleTags(item: {
@@ -240,7 +248,7 @@ async function buildSnapshotForDay(dayKey: string): Promise<DailySnapshotRecord>
     where: { date },
     update: {
       totalVideos: items.length,
-      totalDuration: items.reduce((sum: number, item) => sum + item.duration, 0),
+      totalDuration: getEstimatedDurationSeconds(items),
       uniqueAuthors: unique(items.map((item) => item.authorName || "未知 UP 主")).length,
       uniqueTopics: unique(
         items.map((item) => item.contentTags[0]?.label || item.tagName || item.subTagName || "未分类"),
@@ -255,7 +263,7 @@ async function buildSnapshotForDay(dayKey: string): Promise<DailySnapshotRecord>
     create: {
       date,
       totalVideos: items.length,
-      totalDuration: items.reduce((sum: number, item) => sum + item.duration, 0),
+      totalDuration: getEstimatedDurationSeconds(items),
       uniqueAuthors: unique(items.map((item) => item.authorName || "未知 UP 主")).length,
       uniqueTopics: unique(
         items.map((item) => item.contentTags[0]?.label || item.tagName || item.subTagName || "未分类"),
@@ -354,7 +362,7 @@ export async function generateDailyReport(dayKey = formatDay(new Date())): Promi
       evidence: safeJson(breakdown.evidence),
       metrics: safeJson({
         totalVideos: todaySnapshot.totalVideos,
-        totalDuration: formatDuration(Math.round(todaySnapshot.totalDuration / 60)),
+        estimatedDuration: formatDuration(Math.round(todaySnapshot.totalDuration / 60)),
         noveltyRatio: todaySnapshot.noveltyRatio,
         scoreBreakdown: breakdown,
       }),
@@ -369,7 +377,7 @@ export async function generateDailyReport(dayKey = formatDay(new Date())): Promi
       evidence: safeJson(breakdown.evidence),
       metrics: safeJson({
         totalVideos: todaySnapshot.totalVideos,
-        totalDuration: formatDuration(Math.round(todaySnapshot.totalDuration / 60)),
+        estimatedDuration: formatDuration(Math.round(todaySnapshot.totalDuration / 60)),
         noveltyRatio: todaySnapshot.noveltyRatio,
         scoreBreakdown: breakdown,
       }),

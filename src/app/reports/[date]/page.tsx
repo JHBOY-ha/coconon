@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import { AppShell } from "@/components/app-shell";
 import { Panel } from "@/components/panel";
@@ -24,7 +26,7 @@ export default async function ReportDetailPage({
   const evidence = JSON.parse(report.evidence) as string[];
   const metrics = (JSON.parse(report.metrics) as {
     totalVideos?: number;
-    totalDuration?: string;
+    estimatedDuration?: string;
     noveltyRatio?: number | null;
     scoreBreakdown?: {
       topicNarrowness?: number;
@@ -44,7 +46,7 @@ export default async function ReportDetailPage({
               <p className="mt-4 max-w-3xl text-base leading-8 text-stone-600">{report.summary}</p>
             </div>
             <div className="rounded-[1.75rem] bg-stone-900 px-5 py-4 text-stone-50">
-              <p className="text-sm uppercase tracking-[0.2em] text-stone-400">Cocoon score</p>
+              <p className="text-sm uppercase tracking-[0.2em] text-stone-400">coconon score</p>
               <p className="mt-2 text-3xl">{report.cocoonScore}</p>
               <p className="mt-1 text-sm text-stone-300">{report.cocoonLevel}风险 · {report.comparisonLabel}</p>
             </div>
@@ -53,13 +55,39 @@ export default async function ReportDetailPage({
 
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <Panel>
-            <div className="report-body whitespace-pre-line text-base leading-8 text-stone-700">
-              {report.body
-                .split("\n\n")
-                .filter(Boolean)
-                .map((paragraph: string) => (
-                  <p key={paragraph}>{paragraph}</p>
-                ))}
+            <div className="report-markdown text-base leading-8 text-stone-700">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: (props) => (
+                    <a
+                      {...props}
+                      className="font-medium text-stone-900 underline decoration-stone-400 underline-offset-4"
+                      target="_blank"
+                      rel="noreferrer"
+                    />
+                  ),
+                  code: ({ children, ...props }) => {
+                    const isInline = !String(props.className ?? "").includes("language-");
+
+                    if (isInline) {
+                      return (
+                        <code className="rounded-md bg-stone-100 px-1.5 py-1 font-mono text-[0.92em] text-stone-900">
+                          {children}
+                        </code>
+                      );
+                    }
+
+                    return (
+                      <code className="block overflow-x-auto rounded-2xl bg-stone-900 p-4 font-mono text-sm text-stone-100">
+                        {children}
+                      </code>
+                    );
+                  },
+                }}
+              >
+                {report.body}
+              </ReactMarkdown>
             </div>
 
             <div className="mt-8 border-t border-stone-200 pt-6">
@@ -83,8 +111,8 @@ export default async function ReportDetailPage({
                   <p className="mt-2 text-2xl text-stone-950">{metrics.totalVideos ?? 0}</p>
                 </div>
                 <div className="rounded-3xl bg-stone-100/80 p-4">
-                  <p className="text-sm text-stone-500">累计时长</p>
-                  <p className="mt-2 text-2xl text-stone-950">{metrics.totalDuration ?? "0 分钟"}</p>
+                  <p className="text-sm text-stone-500">估算观看时长</p>
+                  <p className="mt-2 text-2xl text-stone-950">{metrics.estimatedDuration ?? "0 分钟"}</p>
                 </div>
                 <div className="rounded-3xl bg-stone-100/80 p-4">
                   <p className="text-sm text-stone-500">新颖度</p>

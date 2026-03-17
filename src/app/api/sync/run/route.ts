@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 
-import { runFullPipeline, runSyncJob } from "@/lib/server/jobs";
+import { runSyncJob } from "@/lib/server/jobs";
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json().catch(() => ({}))) as { full?: boolean };
 
     if (body.full) {
-      const result = await runFullPipeline("manual", { full: true });
+      const result = await runSyncJob("manual:full", true);
       return NextResponse.json({
         ok: true,
-        message: `全量同步完成，新增 ${result.sync.inserted} 条记录，并已生成今日日报。`,
+        message: `全量刷新完成，新增 ${result.inserted} 条，更新 ${result.updated} 条。日报需要手动点击“生成今日日报”。`,
       });
     }
 

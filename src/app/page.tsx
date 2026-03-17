@@ -6,7 +6,7 @@ import { ManualActions } from "@/components/manual-actions";
 import { Panel } from "@/components/panel";
 import { getDashboardSummary } from "@/lib/server/dashboard";
 import type { DailyReportRecord, JobRunRecord } from "@/lib/store-types";
-import { formatDay, percent } from "@/lib/utils";
+import { formatDateTime, formatDay, percent } from "@/lib/utils";
 
 function ScoreBadge({ score, level }: { score: number; level: string }) {
   const palette =
@@ -32,7 +32,7 @@ export default async function HomePage() {
   const parsedMetrics = latestMetrics
     ? (JSON.parse(latestMetrics) as {
         totalVideos?: number;
-        totalDuration?: string;
+        estimatedDuration?: string;
         noveltyRatio?: number | null;
       })
     : undefined;
@@ -48,7 +48,7 @@ export default async function HomePage() {
                 把每天刷过的视频，变成一份关于注意力结构的日报。
               </h2>
               <p className="mt-4 max-w-2xl text-base leading-8 text-stone-600">
-                cocoon 会自动同步 Bilibili 观看历史，识别主题、追踪变化，并给出“今天是否更容易陷进信息茧房”的判断。
+                coconon 会自动同步 Bilibili 观看历史，识别主题、追踪变化，并给出“今天是否更容易陷进信息茧房”的判断。
               </p>
             </div>
 
@@ -69,8 +69,8 @@ export default async function HomePage() {
                       <p className="mt-2 text-xl text-stone-50">{parsedMetrics?.totalVideos ?? 0}</p>
                     </div>
                     <div className="rounded-2xl bg-white/10 p-4">
-                      <p>累计时长</p>
-                      <p className="mt-2 text-xl text-stone-50">{parsedMetrics?.totalDuration ?? "0 分钟"}</p>
+                      <p>估算观看时长</p>
+                      <p className="mt-2 text-xl text-stone-50">{parsedMetrics?.estimatedDuration ?? "0 分钟"}</p>
                     </div>
                   </div>
                   <Link
@@ -210,6 +210,18 @@ export default async function HomePage() {
 
             <Panel>
               <div className="flex items-center gap-3">
+                <BrainCircuit className="h-5 w-5 text-stone-700" />
+                <h3 className="font-serif text-2xl text-stone-950">评分怎么来的</h3>
+              </div>
+              <div className="mt-4 space-y-3 text-sm leading-7 text-stone-600">
+                <p>当前风险分数不是模型主观判断，而是规则分加上 LLM 解读。</p>
+                <p>规则分主要看 5 个维度：主题是否收窄、分区是否集中、UP 主是否重复、新颖度是否下降、观看时段和时长是否更隧道化。</p>
+                <p>权重大致是：主题收窄 28%、UP 主重复 22%、分区集中 18%、新颖度下降 18%、时段/时长隧道化 14%。</p>
+              </div>
+            </Panel>
+
+            <Panel>
+              <div className="flex items-center gap-3">
                 <Clock3 className="h-5 w-5 text-stone-700" />
                 <h3 className="font-serif text-2xl text-stone-950">最近任务</h3>
               </div>
@@ -221,7 +233,7 @@ export default async function HomePage() {
                       <span className="text-sm text-stone-600">{job.status}</span>
                     </div>
                     <p className="mt-1 text-sm text-stone-500">
-                      {formatDay(job.startedAt)} · {job.trigger}
+                      {formatDateTime(job.startedAt)} · {job.trigger}
                     </p>
                   </div>
                 ))}

@@ -17,6 +17,7 @@ export async function ensureAppConfig(): Promise<AppConfigRecord> {
       singleton: "default",
       llmBaseUrl: getDefaultLlmBaseUrl(),
       llmModel: getDefaultLlmModel(),
+      llmEnabled: 1,
     },
   })) as AppConfigRecord;
 }
@@ -98,6 +99,7 @@ export async function saveLlmConfig(input: {
   baseUrl?: string;
   apiKey?: string;
   model?: string;
+  enabled?: boolean;
   syncHour?: number;
   syncMinute?: number;
 }) {
@@ -111,6 +113,7 @@ export async function saveLlmConfig(input: {
         ? encryptText(input.apiKey)
         : current.llmApiKeyEncrypted,
       llmModel: input.model ?? current.llmModel ?? getDefaultLlmModel(),
+      llmEnabled: input.enabled == null ? current.llmEnabled : input.enabled ? 1 : 0,
       syncHour: input.syncHour ?? current.syncHour,
       syncMinute: input.syncMinute ?? current.syncMinute,
     },
@@ -124,4 +127,37 @@ export async function getLlmConfig() {
     ...config,
     apiKey: config.llmApiKeyEncrypted ? decryptText(config.llmApiKeyEncrypted) : null,
   };
+}
+
+export async function resetApplicationSettings() {
+  const [config, credential] = await Promise.all([ensureAppConfig(), ensureBiliCredential()]);
+
+  await Promise.all([
+    prisma.appConfig.update({
+      where: { singleton: "default" },
+      data: {
+        adminPasswordHash: null,
+        llmBaseUrl: getDefaultLlmBaseUrl(),
+        llmApiKeyEncrypted: null,
+        llmModel: getDefaultLlmModel(),
+        llmEnabled: 1,
+        syncHour: 1,
+        syncMinute: 0,
+        timezone: config.timezone,
+        encryptionVersion: config.encryptionVersion,
+      },
+    }),
+    prisma.biliCredential.update({
+      where: { singleton: "default" },
+      data: {
+        cookieEncrypted: null,
+        cookiePreview: null,
+        status: "UNVERIFIED",
+        lastValidatedAt: null,
+        failureReason: null,
+      },
+    }),
+  ]);
+
+  return { config, credential };
 }

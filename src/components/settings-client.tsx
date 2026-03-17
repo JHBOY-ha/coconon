@@ -1,16 +1,21 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type SettingsClientProps = {
   cookiePreview: string | null;
   llmBaseUrl: string | null;
   llmModel: string | null;
+  llmEnabled: boolean;
   syncHour: number;
   syncMinute: number;
+  defaultLlmBaseUrl: string;
+  defaultLlmModel: string;
 };
 
 export function SettingsClient(props: SettingsClientProps) {
+  const router = useRouter();
   const [sessdata, setSessdata] = useState("");
   const [biliJct, setBiliJct] = useState("");
   const [dedeUserId, setDedeUserId] = useState("");
@@ -18,11 +23,15 @@ export function SettingsClient(props: SettingsClientProps) {
   const [cookieTesting, setCookieTesting] = useState(false);
   const [llmBaseUrl, setLlmBaseUrl] = useState(props.llmBaseUrl ?? "");
   const [llmModel, setLlmModel] = useState(props.llmModel ?? "");
+  const [llmEnabled, setLlmEnabled] = useState(props.llmEnabled);
   const [apiKey, setApiKey] = useState("");
   const [syncHour, setSyncHour] = useState(props.syncHour);
   const [syncMinute, setSyncMinute] = useState(props.syncMinute);
   const [llmMessage, setLlmMessage] = useState<string | null>(null);
   const [llmTesting, setLlmTesting] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [purging, setPurging] = useState(false);
+  const [dangerMessage, setDangerMessage] = useState<string | null>(null);
 
   async function submitCookie() {
     setCookieMessage(null);
@@ -51,13 +60,14 @@ export function SettingsClient(props: SettingsClientProps) {
     const response = await fetch("/api/settings/llm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        baseUrl: llmBaseUrl,
-        model: llmModel,
-        apiKey,
-        syncHour,
-        syncMinute,
-      }),
+        body: JSON.stringify({
+          baseUrl: llmBaseUrl,
+          model: llmModel,
+          apiKey,
+          enabled: llmEnabled,
+          syncHour,
+          syncMinute,
+        }),
     });
 
     const payload = (await response.json()) as { message?: string; error?: string };
@@ -109,6 +119,65 @@ export function SettingsClient(props: SettingsClientProps) {
       setLlmMessage(payload.message ?? payload.error ?? null);
     } finally {
       setLlmTesting(false);
+    }
+  }
+
+  async function resetSettings() {
+    if (!window.confirm("这会清空当前保存的 Cookie、LLM 配置和调度设置。确定继续吗？")) {
+      return;
+    }
+
+    setResetting(true);
+    setDangerMessage(null);
+    setCookieMessage(null);
+    setLlmMessage(null);
+
+    try {
+      const response = await fetch("/api/settings/reset", {
+        method: "POST",
+      });
+      const payload = (await response.json()) as { message?: string; error?: string };
+      const message = payload.message ?? payload.error ?? null;
+
+      setDangerMessage(message);
+
+      if (response.ok) {
+        setSessdata("");
+        setBiliJct("");
+        setDedeUserId("");
+        setLlmBaseUrl(props.defaultLlmBaseUrl);
+        setLlmModel(props.defaultLlmModel);
+        setApiKey("");
+        setLlmEnabled(true);
+        setSyncHour(1);
+        setSyncMinute(0);
+        router.refresh();
+      }
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  async function purgeData() {
+    if (!window.confirm("这会删除观看历史、标签、日报、快照和任务记录，且无法恢复。确定继续吗？")) {
+      return;
+    }
+
+    setPurging(true);
+    setDangerMessage(null);
+
+    try {
+      const response = await fetch("/api/settings/purge-data", {
+        method: "POST",
+      });
+      const payload = (await response.json()) as { message?: string; error?: string };
+      setDangerMessage(payload.message ?? payload.error ?? null);
+
+      if (response.ok) {
+        router.refresh();
+      }
+    } finally {
+      setPurging(false);
     }
   }
 
@@ -192,6 +261,23 @@ export function SettingsClient(props: SettingsClientProps) {
           用于补主题标签和生成日报文字。若未配置 API Key，系统会自动回退到模板文案。
         </p>
 
+        <div className="mt-4 flex items-center justify-between rounded-3xl bg-white/70 px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-stone-900">启用 LLM 识别</p>
+            <p className="mt-1 text-sm text-stone-500">关闭后将停用 LLM 标签补全和 LLM 日报文案，系统只使用规则和模板。</p>
+          </div>
+          <button
+            type="button"
+            aria-pressed={llmEnabled}
+            onClick={() => setLlmEnabled((value) => !value)}
+            className={`relative h-8 w-14 rounded-full transition ${llmEnabled ? "bg-stone-900" : "bg-stone-300"}`}
+          >
+            <span
+              className={`absolute top-1 h-6 w-6 rounded-full bg-white transition ${llmEnabled ? "left-7" : "left-1"}`}
+            />
+          </button>
+        </div>
+
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="space-y-2">
             <span className="text-sm text-stone-600">Base URL</span>
@@ -259,6 +345,47 @@ export function SettingsClient(props: SettingsClientProps) {
               className="rounded-full bg-stone-900 px-4 py-2 text-sm text-stone-50"
             >
               保存设置
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-[2rem] border border-red-200 bg-red-50/70 p-5">
+        <h3 className="text-lg font-medium text-red-900">危险操作</h3>
+        <p className="mt-2 text-sm text-red-700">{dangerMessage}</p>
+
+        <div className="mt-4 space-y-3">
+          <div className="flex flex-col gap-3 rounded-3xl border border-red-200 bg-white/60 px-4 py-4 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-sm font-medium text-red-900">删除日报和历史记录</p>
+              <p className="mt-1 text-sm leading-6 text-red-700">
+                清空观看历史、标签、每日快照、日报和任务记录。
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={purgeData}
+              disabled={purging}
+              className="rounded-full border border-red-300 bg-red-100 px-4 py-2 text-sm text-red-700 disabled:cursor-not-allowed disabled:text-red-300"
+            >
+              {purging ? "删除中..." : "删除日报和历史记录"}
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-3xl border border-red-200 bg-white/60 px-4 py-4 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-sm font-medium text-red-900">恢复默认设置</p>
+              <p className="mt-1 text-sm leading-6 text-red-700">
+                清空当前保存的 Cookie、LLM 配置和调度设置。
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={resetSettings}
+              disabled={resetting}
+              className="rounded-full border border-red-300 bg-red-100 px-4 py-2 text-sm text-red-700 disabled:cursor-not-allowed disabled:text-red-300"
+            >
+              {resetting ? "恢复中..." : "恢复默认设置"}
             </button>
           </div>
         </div>

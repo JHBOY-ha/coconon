@@ -6,6 +6,7 @@ export type AppConfigRecord = {
   llmBaseUrl: string | null;
   llmApiKeyEncrypted: string | null;
   llmModel: string | null;
+  llmEnabled: number;
   syncHour: number;
   syncMinute: number;
   timezone: string;

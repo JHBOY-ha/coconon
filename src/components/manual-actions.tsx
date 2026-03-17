@@ -70,7 +70,7 @@ export function ManualActions() {
       />
       <ActionButton
         title="全量刷新一次"
-        description="首次绑定 Cookie 后建议执行。会分页抓取更多历史记录。"
+        description="首次绑定 Cookie 后建议执行。会分页抓取更多历史记录，但不会自动生成日报。"
         endpoint="/api/sync/run"
         body={{ full: true }}
       />

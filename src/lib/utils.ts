@@ -33,6 +33,19 @@ export function formatDay(input: Date) {
     .replaceAll("/", "-");
 }
 
+export function formatDateTime(input: Date) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Shanghai",
+  })
+    .format(input)
+    .replaceAll("/", "-");
+}
+
 export function parseDayKey(dayKey: string) {
   const [year, month, day] = dayKey.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
@@ -50,6 +63,27 @@ export function formatDuration(minutes: number) {
 
 export function formatMinutesFromSeconds(seconds: number) {
   return formatDuration(Math.max(1, Math.round(seconds / 60)));
+}
+
+export function estimateWatchedSeconds(duration: number, progress: number | null) {
+  if (duration <= 0) {
+    return 0;
+  }
+
+  if (progress == null) {
+    return duration;
+  }
+
+  // Bilibili history commonly uses -1 to indicate the video was watched to the end.
+  if (progress === -1) {
+    return duration;
+  }
+
+  if (progress <= 0) {
+    return Math.min(duration, 5);
+  }
+
+  return Math.min(progress, duration);
 }
 
 export function percent(value: number) {

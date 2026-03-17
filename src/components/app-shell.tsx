@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { BarChart3, Clock3, Settings2 } from "lucide-react";
+import { BarChart3, Clock3, ListVideo, Settings2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "仪表盘", icon: BarChart3 },
+  { href: "/history", label: "今日历史", icon: ListVideo },
   { href: "/jobs", label: "任务", icon: Clock3 },
   { href: "/settings", label: "设置", icon: Settings2 },
 ];

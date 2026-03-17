@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { z } from "zod";
 
 import type { LlmTagResult, ReportPromptPayload } from "@/lib/types";
 import { getDefaultLlmBaseUrl, getDefaultLlmModel } from "@/lib/env";
@@ -8,7 +9,7 @@ async function getClient(override?: {
   baseUrl?: string;
   apiKey?: string;
   model?: string;
-}) {
+}, options?: { ignoreEnabled?: boolean }) {
   const storedConfig = await getLlmConfig();
   const config = {
     ...storedConfig,
@@ -17,7 +18,7 @@ async function getClient(override?: {
     apiKey: override?.apiKey ?? storedConfig.apiKey,
   };
 
-  if (!config.apiKey) {
+  if (!config.apiKey || (!options?.ignoreEnabled && !config.llmEnabled)) {
     return null;
   }
 
@@ -37,6 +38,16 @@ function extractJsonBlock(text: string) {
   }
   return JSON.parse(match[0]) as Record<string, unknown>;
 }
+
+const tagResultSchema = z.object({
+  tags: z.array(z.string()).min(1),
+  summary: z.string().min(1),
+});
+
+const narrativeReportSchema = z.object({
+  summary: z.string().min(1),
+  body: z.string().min(1),
+});
 
 function normalizeLlmError(error: unknown) {
   if (error instanceof Error) {
@@ -112,7 +123,7 @@ export async function enrichTagsWithLlm(input: {
     return null;
   }
 
-  const payload = (await requestJson(
+  const payload = tagResultSchema.parse(await requestJson(
     bundle,
     "你是一个视频主题分类助手。请根据给定信息返回 JSON：{tags: string[], summary: string}。tags 仅返回 1 到 3 个中文短标签。",
     JSON.stringify(input),
@@ -129,10 +140,10 @@ export async function validateLlmConfig(input?: {
   apiKey?: string;
   model?: string;
 }) {
-  const bundle = await getClient(input);
+  const bundle = await getClient(input, { ignoreEnabled: true });
 
   if (!bundle) {
-    throw new Error("当前没有可用的 LLM 配置，请先填写并保存 API Key，或在输入框中提供临时配置。");
+    throw new Error("当前没有可用的 LLM 配置，请先启用 LLM 识别并填写 API Key，或在输入框中提供临时配置。");
   }
 
   try {
@@ -159,9 +170,9 @@ export async function generateNarrativeReport(payload: ReportPromptPayload) {
     return null;
   }
 
-  const parsed = (await requestJson(
+  const parsed = narrativeReportSchema.parse(await requestJson(
     bundle,
-    "你是 cocoon 的日报助手。请根据结构化指标输出 JSON：{summary: string, body: string}。要求简洁、具体，明确说明相比上一天是更窄、更宽还是持平，并给出 2-3 条证据。",
+    "你是 coconon 的日报助手。请根据结构化指标输出 JSON：{summary: string, body: string}。summary 为一段简短结论。body 必须使用 Markdown，允许使用标题、粗体、列表和引用；要求简洁、具体，明确说明相比上一天是更窄、更宽还是持平，并给出 2-3 条证据。",
     JSON.stringify(payload),
   )) as { summary: string; body: string };
 

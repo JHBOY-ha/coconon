@@ -8,6 +8,7 @@ const llmSchema = z.object({
   baseUrl: z.string().url().optional().or(z.literal("")),
   apiKey: z.string().optional(),
   model: z.string().min(1, "模型名不能为空").optional().or(z.literal("")),
+  enabled: z.boolean().optional(),
   syncHour: z.number().int().min(0).max(23).optional(),
   syncMinute: z.number().int().min(0).max(59).optional(),
 });
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
       baseUrl: body.baseUrl || undefined,
       model: body.model || undefined,
       apiKey: body.apiKey || undefined,
+      enabled: body.enabled,
       syncHour: body.syncHour,
       syncMinute: body.syncMinute,
     });

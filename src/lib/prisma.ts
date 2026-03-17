@@ -81,6 +81,7 @@ function getDatabase() {
         llm_base_url TEXT,
         llm_api_key_encrypted TEXT,
         llm_model TEXT,
+        llm_enabled INTEGER NOT NULL DEFAULT 1,
         sync_hour INTEGER NOT NULL DEFAULT 1,
         sync_minute INTEGER NOT NULL DEFAULT 0,
         timezone TEXT NOT NULL DEFAULT 'Asia/Shanghai',
@@ -179,6 +180,11 @@ function getDatabase() {
       );
     `);
 
+    const appConfigColumns = db.prepare("PRAGMA table_info(app_config)").all() as Array<{ name: string }>;
+    if (!appConfigColumns.some((column) => column.name === "llm_enabled")) {
+      db.exec("ALTER TABLE app_config ADD COLUMN llm_enabled INTEGER NOT NULL DEFAULT 1");
+    }
+
     globalForDatabase.cocoonDb = db;
   }
 
@@ -212,6 +218,18 @@ function toCamel(row: unknown) {
 
 const db = getDatabase();
 
+export async function purgeContentData() {
+  const clear = db.transaction(() => {
+    db.prepare("DELETE FROM content_tags").run();
+    db.prepare("DELETE FROM watch_history_items").run();
+    db.prepare("DELETE FROM daily_snapshots").run();
+    db.prepare("DELETE FROM daily_reports").run();
+    db.prepare("DELETE FROM job_runs").run();
+  });
+
+  clear();
+}
+
 export const prisma: PrismaCompat = {
   appConfig: {
     upsert({
@@ -237,6 +255,7 @@ export const prisma: PrismaCompat = {
             llm_base_url = @llmBaseUrl,
             llm_api_key_encrypted = @llmApiKeyEncrypted,
             llm_model = @llmModel,
+            llm_enabled = @llmEnabled,
             sync_hour = @syncHour,
             sync_minute = @syncMinute,
             timezone = @timezone,
@@ -249,6 +268,7 @@ export const prisma: PrismaCompat = {
           llmBaseUrl: merged.llmBaseUrl ?? null,
           llmApiKeyEncrypted: merged.llmApiKeyEncrypted ?? null,
           llmModel: merged.llmModel ?? null,
+          llmEnabled: merged.llmEnabled ?? 1,
           syncHour: merged.syncHour ?? 1,
           syncMinute: merged.syncMinute ?? 0,
           timezone: merged.timezone ?? "Asia/Shanghai",
@@ -259,10 +279,10 @@ export const prisma: PrismaCompat = {
         db.prepare(
           `INSERT INTO app_config (
             singleton, admin_password_hash, llm_base_url, llm_api_key_encrypted, llm_model,
-            sync_hour, sync_minute, timezone, encryption_version, created_at, updated_at
+            llm_enabled, sync_hour, sync_minute, timezone, encryption_version, created_at, updated_at
           ) VALUES (
             @singleton, @adminPasswordHash, @llmBaseUrl, @llmApiKeyEncrypted, @llmModel,
-            @syncHour, @syncMinute, @timezone, @encryptionVersion, @createdAt, @updatedAt
+            @llmEnabled, @syncHour, @syncMinute, @timezone, @encryptionVersion, @createdAt, @updatedAt
           )`,
         ).run({
           singleton: where.singleton,
@@ -270,6 +290,7 @@ export const prisma: PrismaCompat = {
           llmBaseUrl: create.llmBaseUrl ?? null,
           llmApiKeyEncrypted: create.llmApiKeyEncrypted ?? null,
           llmModel: create.llmModel ?? null,
+          llmEnabled: create.llmEnabled ?? 1,
           syncHour: create.syncHour ?? 1,
           syncMinute: create.syncMinute ?? 0,
           timezone: create.timezone ?? "Asia/Shanghai",

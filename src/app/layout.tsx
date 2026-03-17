@@ -17,7 +17,7 @@ const dmSerifDisplay = DM_Serif_Display({
 
 export const metadata: Metadata = {
   title: "coconon",
-  description: "Analyze your Bilibili watch history and spot information cocoon risks.",
+  description: "Analyze your Bilibili watch history and spot information coconon risks.",
 };
 
 export default async function RootLayout({

@@ -43,3 +43,62 @@ button {
 .report-body p + p {
   margin-top: 1rem;
 }
+
+.report-markdown > * + * {
+  margin-top: 1rem;
+}
+
+.report-markdown h1,
+.report-markdown h2,
+.report-markdown h3 {
+  font-family: var(--font-dm-serif-display), serif;
+  color: #1f1409;
+  line-height: 1.2;
+}
+
+.report-markdown h1 {
+  font-size: 2rem;
+}
+
+.report-markdown h2 {
+  font-size: 1.6rem;
+}
+
+.report-markdown h3 {
+  font-size: 1.25rem;
+}
+
+.report-markdown p,
+.report-markdown li,
+.report-markdown blockquote {
+  color: #4f4438;
+}
+
+.report-markdown ul,
+.report-markdown ol {
+  padding-left: 1.5rem;
+}
+
+.report-markdown ul {
+  list-style: disc;
+}
+
+.report-markdown ol {
+  list-style: decimal;
+}
+
+.report-markdown li + li {
+  margin-top: 0.5rem;
+}
+
+.report-markdown blockquote {
+  border-left: 3px solid rgba(83, 67, 48, 0.25);
+  padding-left: 1rem;
+  font-style: italic;
+}
+
+.report-markdown hr {
+  border: 0;
+  border-top: 1px solid rgba(83, 67, 48, 0.12);
+  margin: 1.5rem 0;
+}
