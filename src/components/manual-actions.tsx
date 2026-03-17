@@ -329,9 +329,8 @@ function TagEnrichmentCard() {
 export function ManualActions() {
   return (
     <div className="space-y-4">
-      <TagEnrichmentCard />
-
       <SyncHistoryCard />
+      <TagEnrichmentCard />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ActionButton

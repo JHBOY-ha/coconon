@@ -75,7 +75,7 @@ export default async function HomePage() {
                 把每天刷过的视频，变成一份关于注意力结构变化的报告。
               </h2>
               <p className="mt-4 max-w-3xl text-base leading-8 text-stone-600">
-                coconon 不再只看“今天内部是否集中”，而是比较今日与昨日、本周与上周，判断你是否正在更深地进入信息茧房。
+                coconon 比较今日与昨日、本周与上周，判断你是否正在更深地进入信息茧房。
               </p>
             </div>
 
@@ -107,7 +107,7 @@ export default async function HomePage() {
               <h3 className="mt-2 font-serif text-3xl text-stone-950">手动运行入口</h3>
             </div>
             <p className="max-w-md text-right text-sm leading-6 text-stone-600">
-              定时任务会按设置页时间自动触发；这里保留手动重跑能力，便于首次导入和调试。
+              定时任务会按设置页时间自动触发。
             </p>
           </div>
 

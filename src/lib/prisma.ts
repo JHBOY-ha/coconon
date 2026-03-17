@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 
 import Database from "better-sqlite3";
+import { JobStatus } from "@/lib/db-types";
 
 type UpsertArgs = {
   where: Record<string, unknown>;
@@ -910,7 +911,7 @@ export const prisma: PrismaCompat = {
       ).run({
         id,
         jobType: data.jobType,
-        status: data.status,
+        status: data.status ?? JobStatus.RUNNING,
         trigger: data.trigger,
         durationMs: data.durationMs ?? null,
         startedAt: timestamp,
@@ -921,6 +922,11 @@ export const prisma: PrismaCompat = {
       return Promise.resolve(toCamel(db.prepare("SELECT * FROM job_runs WHERE id = ?").get(id)));
     },
     update({ where, data }: { where: { id: string }; data: Record<string, unknown> }) {
+      const existing = toCamel(db.prepare("SELECT * FROM job_runs WHERE id = ?").get(where.id)) as Record<string, unknown> | null;
+      if (!existing) {
+        throw new Error("JobRun not found.");
+      }
+
       db.prepare(
         `UPDATE job_runs SET
           status = @status,
@@ -931,7 +937,7 @@ export const prisma: PrismaCompat = {
         WHERE id = @id`,
       ).run({
         id: where.id,
-        status: data.status,
+        status: data.status ?? existing.status ?? JobStatus.RUNNING,
         durationMs: data.durationMs ?? null,
         finishedAt: serializeDate(data.finishedAt),
         errorMessage: data.errorMessage ?? null,

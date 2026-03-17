@@ -1,6 +1,7 @@
 import { TagSource, TagStatus } from "@/lib/db-types";
 import { prisma } from "@/lib/prisma";
 import { computeCocononScore } from "@/lib/cocoon-score";
+import { deriveCanonicalTopics, normalizeTopicLabel } from "@/lib/topic-taxonomy";
 import type {
   ContentTagRecord,
   DailyReportRecord,
@@ -85,11 +86,8 @@ function deriveRuleTags(item: {
     ["美食", ["做饭", "料理", "探店", "美食"]],
   ];
 
-  if (item.tagName) {
-    tags.add(item.tagName);
-  }
-  if (item.subTagName) {
-    tags.add(item.subTagName);
+  for (const label of deriveCanonicalTopics(item)) {
+    tags.add(label);
   }
 
   for (const [label, keywords] of keywordGroups) {
@@ -117,7 +115,7 @@ function getValidContentLabels(item: {
 }) {
   const labels =
     item.contentTags
-      ?.map((tag) => sanitizeContentLabel(tag.label))
+      ?.map((tag) => normalizeTopicLabel(tag.label) ?? sanitizeContentLabel(tag.label))
       .filter((value): value is string => Boolean(value)) ?? [];
 
   if (labels.length > 0) {
@@ -125,7 +123,7 @@ function getValidContentLabels(item: {
   }
 
   return [item.subTagName, item.tagName]
-    .map((label) => sanitizeContentLabel(label))
+    .map((label) => normalizeTopicLabel(label) ?? sanitizeContentLabel(label))
     .filter((value): value is string => Boolean(value));
 }
 

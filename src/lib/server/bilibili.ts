@@ -1,6 +1,7 @@
-import { CredentialStatus, TagStatus } from "@/lib/db-types";
+import { CredentialStatus, TagSource, TagStatus } from "@/lib/db-types";
 import { prisma } from "@/lib/prisma";
 import type { WatchHistoryItemRecord } from "@/lib/store-types";
+import { deriveCanonicalTopics } from "@/lib/topic-taxonomy";
 import { addDays } from "@/lib/utils";
 import { buildBiliCookie, ensureBiliCredential, getDecryptedCookie } from "@/lib/server/config";
 
@@ -80,6 +81,40 @@ function normalizeHistoryItem(item: RawHistoryItem) {
     covers: JSON.stringify(item.covers ?? []),
     rawPayload: JSON.stringify(item),
   };
+}
+
+function getBaseTags(item: { tagName: string | null; subTagName: string | null }) {
+  return deriveCanonicalTopics({
+    tagName: item.tagName,
+    subTagName: item.subTagName,
+  }).slice(0, 2);
+}
+
+async function saveBaseTagsIfNeeded(
+  record: WatchHistoryItemRecord,
+  normalized: { tagName: string | null; subTagName: string | null },
+) {
+  if (record.tagStatus === TagStatus.ENRICHED || record.tagStatus === TagStatus.RULE_ONLY) {
+    return;
+  }
+
+  const baseTags = getBaseTags(normalized);
+  if (baseTags.length === 0) {
+    return;
+  }
+
+  await prisma.contentTag.deleteMany({
+    where: { watchHistoryItemId: record.id },
+  });
+  await prisma.contentTag.createMany({
+    data: baseTags.map((label) => ({
+      watchHistoryItemId: record.id,
+      label,
+      source: TagSource.RULE,
+      confidence: 0.95,
+      summary: null,
+    })),
+  });
 }
 
 export function deriveViewingAt(timestamp: number) {
@@ -237,10 +272,14 @@ export async function syncWatchHistory(options: SyncOptions) {
         where: { historyKey: item.historyKey },
         update: {
           ...item,
+        },
+        create: {
+          ...item,
           tagStatus: TagStatus.PENDING,
         },
-        create: item,
       })) as WatchHistoryItemRecord & { __created?: boolean };
+
+      await saveBaseTagsIfNeeded(result, item);
 
       if (result.__created) {
         inserted += 1;
